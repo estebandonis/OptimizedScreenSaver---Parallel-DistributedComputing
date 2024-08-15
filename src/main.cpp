@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <cmath>
+#include <string>
 
 // Define the screen width and height
 const int SCREEN_WIDTH = 640;
@@ -23,7 +24,7 @@ int main(int argc, char* args[]) {
     }
 
     // Create SDL window with the specified title, position, width, height, and flags
-    window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("Particle Screensaver - 0", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     // Catch error when SDL fails to create a window
     if (window == nullptr) {
         SDL_Log("Window could not be created! SDL_Error: %s\n", SDL_GetError());
@@ -46,6 +47,10 @@ int main(int argc, char* args[]) {
     // Set the draw color to white
     SDL_RenderPresent(renderer);
 
+    int frameCount = 0;
+    double startTime = SDL_GetTicks();
+    double currentTime = startTime;
+
     // Declares SDL event variable to handle events
     SDL_Event e;
     // Controls the main loop of the program
@@ -59,7 +64,16 @@ int main(int argc, char* args[]) {
                 // If so, sets the quit flag to true
                 quit = true;
             }
-        }
+            frameCount++;
+
+            // Calculate and display FPS
+            if (SDL_GetTicks() - currentTime >= 1000) {
+                currentTime = SDL_GetTicks();
+                std::string title = "Hello World - FPS: " + std::to_string(frameCount);
+                SDL_SetWindowTitle(window, title.c_str());
+                frameCount = 0;
+            }
+        }    
     }
 
     // Destroy the renderer and window
