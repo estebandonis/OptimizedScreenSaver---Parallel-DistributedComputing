@@ -1,3 +1,0 @@
-/Users/estebandonis/Documents/OctavoSemestre/ParalelaYDistribuida/Proyectos/OptimizedScreenSaver---Parallel-DistributedComputing/cmake-build-debug/CMakeFiles/ScreenSaver.dir
-/Users/estebandonis/Documents/OctavoSemestre/ParalelaYDistribuida/Proyectos/OptimizedScreenSaver---Parallel-DistributedComputing/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/estebandonis/Documents/OctavoSemestre/ParalelaYDistribuida/Proyectos/OptimizedScreenSaver---Parallel-DistributedComputing/cmake-build-debug/CMakeFiles/rebuild_cache.dir
