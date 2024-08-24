@@ -8,6 +8,7 @@
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 const int TRAIL_LENGTH = 20;
+const int NUM_PARTICLES = 50;
 
 /**
  * Particle struct
@@ -127,6 +128,8 @@ int main(int argc, char* args[]) {
     // Current time of the program
     double currentTime = startTime;
 
+    // Vector to store particles
+    std::vector<Particle> particles;
     // Generate random particle
     std::random_device rd;
     // Seed the random number generator
@@ -134,8 +137,10 @@ int main(int argc, char* args[]) {
     // Generate random number between -2 and 2
     std::uniform_real_distribution<> dis(-2.0, 2.0);
 
-    Particle uniqueParticle = Particle(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, dis(gen), dis(gen), getRandomColor());
-
+    // Create particles to fill the screen
+    for (int i = 0; i < NUM_PARTICLES; ++i) {
+        particles.emplace_back(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, dis(gen), dis(gen), getRandomColor());
+    }
     // Declares SDL event variable to handle events
     SDL_Event e;
     // Controls the main loop of the program
@@ -156,10 +161,12 @@ int main(int argc, char* args[]) {
         // Clear the screen
         SDL_RenderClear(renderer);
 
-        // Update particle position
-        updateParticle(uniqueParticle);
-        // Draw the particle
-        drawParticle(renderer, uniqueParticle);
+        for (auto& particle : particles) {
+            // Update particle position
+            updateParticle(particle);
+            // Draw the particle
+            drawParticle(renderer, particle);
+        }
 
         // Update the screen
         SDL_RenderPresent(renderer);
