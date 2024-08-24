@@ -58,6 +58,9 @@ void updateParticle(Particle& p) {
     p.x += p.dx;
     p.y += p.dy;
 
+    if (p.x < 0 || p.x >= SCREEN_WIDTH) p.dx = -p.dx;
+    if (p.y < 0 || p.y >= SCREEN_HEIGHT) p.dy = -p.dy;
+
     // Insert the current position into the trail
     p.trail.insert(p.trail.begin(), SDL_Point{static_cast<int>(p.x), static_cast<int>(p.y)});
     // Remove the last element of the trail if it exceeds the trail length
