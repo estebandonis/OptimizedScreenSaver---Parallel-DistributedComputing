@@ -1,199 +1,226 @@
 #include <SDL2/SDL.h>
 #include <vector>
 #include <cmath>
-#include <string>
 #include <random>
+#include <algorithm>
+#include <iostream>
 
-// Define the screen width and height
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+const int SCREEN_WIDTH = 800;
+const int SCREEN_HEIGHT = 600;
+const int INITIAL_PARTICLES = 5000;
 const int TRAIL_LENGTH = 20;
-const int NUM_PARTICLES = 50;
+const int NUM_ORBITS = 5;
+const float ORBIT_SPEED = 0.02f;
+const float ROAM_SPEED = 1.0f;
+const float CAPTURE_RADIUS = 100.0f;
+const float ABSORPTION_RADIUS = 5.0f;
+const float ESCAPE_PROBABILITY = 0.005f;
+const float CAPTURE_PROBABILITY = 0.05f;
 
-/**
- * Particle struct
- * Contains the x and y position of the particle, the x and y velocity of the particle, the color of the particle, and the trail of the particle
- */
-struct Particle {
-    // Position of the particle
+struct OrbitPoint {
     float x, y;
-    // Velocity of the particle
-    float dx, dy;
-    // Color of the particle
-    SDL_Color color;
-    // Trail of the particle
-    std::vector<SDL_Point> trail;
-
-    // Constructor for the Particle struct
-    Particle(float x, float y, float dx, float dy, SDL_Color color)
-        : x(x), y(y), dx(dx), dy(dy), color(color) {}
+    float radius;
+    int absorbed_count;
 };
 
-/**
- * getRandomColor function
- * Generates a random color
- * @return SDL_Color object with random color
- */
+struct Particle {
+    float x, y;
+    float dx, dy;
+    float angle;
+    float orbitRadius;
+    int orbitIndex;
+    bool isOrbiting;
+    SDL_Color color;
+    std::vector<SDL_Point> trail;
+
+    Particle(float x, float y, float dx, float dy, SDL_Color color)
+        : x(x), y(y), dx(dx), dy(dy), angle(0), orbitRadius(0), orbitIndex(-1),
+          isOrbiting(false), color(color) {}
+};
+
 SDL_Color getRandomColor() {
-    // Generate random color
     static std::random_device rd;
-    // Seed the random number generator
     static std::mt19937 gen(rd());
-    // Generate random number between 0 and 255
     static std::uniform_int_distribution<> dis(0, 255);
 
-    // Return random color
     return SDL_Color{static_cast<Uint8>(dis(gen)),
                      static_cast<Uint8>(dis(gen)),
                      static_cast<Uint8>(dis(gen)),
                      255};
 }
 
-/**
- * updateParticle function
- * Is in charge of updating the particle's position
- * @param p Particle to update
- */
-void updateParticle(Particle& p) {
-    // Update particle position based on velocity
-    p.x += p.dx;
-    p.y += p.dy;
+bool updateParticle(Particle& p, std::vector<OrbitPoint>& orbits, std::mt19937& gen) {
+    std::uniform_real_distribution<> prob_dis(0.0, 1.0);
 
-    if (p.x < 0 || p.x >= SCREEN_WIDTH) p.dx = -p.dx;
-    if (p.y < 0 || p.y >= SCREEN_HEIGHT) p.dy = -p.dy;
+    if (p.isOrbiting) {
+        // Check for escape
+        if (prob_dis(gen) < ESCAPE_PROBABILITY) {
+            p.isOrbiting = false;
+            p.dx = ROAM_SPEED * (prob_dis(gen) * 2 - 1);
+            p.dy = ROAM_SPEED * (prob_dis(gen) * 2 - 1);
+        } else {
+            // Update orbital motion
+            p.angle += ORBIT_SPEED;
+            if (p.angle > 2 * M_PI) p.angle -= 2 * M_PI;
+            OrbitPoint& orbit = orbits[p.orbitIndex];
+            p.x = orbit.x + p.orbitRadius * cos(p.angle);
+            p.y = orbit.y + p.orbitRadius * sin(p.angle);
 
-    // Insert the current position into the trail
+            // Check for absorption
+            if (p.orbitRadius < ABSORPTION_RADIUS) {
+                orbit.absorbed_count++;
+                return false;  // Particle is absorbed
+            }
+
+            // Gradually decrease orbit radius
+            p.orbitRadius = std::max(p.orbitRadius - 0.01f, 0.0f);
+        }
+    } else {
+        // Roaming motion
+        p.x += p.dx;
+        p.y += p.dy;
+
+        // Bounce off screen edges
+        if (p.x < 0 || p.x >= SCREEN_WIDTH) p.dx = -p.dx;
+        if (p.y < 0 || p.y >= SCREEN_HEIGHT) p.dy = -p.dy;
+
+        // Check for capture
+        for (size_t i = 0; i < orbits.size(); ++i) {
+            float dx = p.x - orbits[i].x;
+            float dy = p.y - orbits[i].y;
+            float distance = sqrt(dx*dx + dy*dy);
+            if (distance < CAPTURE_RADIUS && prob_dis(gen) < CAPTURE_PROBABILITY) {
+                p.isOrbiting = true;
+                p.orbitIndex = i;
+                p.orbitRadius = distance;
+                p.angle = atan2(dy, dx);
+                p.color = getRandomColor();  // Change color on capture
+                break;
+            }
+        }
+    }
+
+    // Update trail
     p.trail.insert(p.trail.begin(), SDL_Point{static_cast<int>(p.x), static_cast<int>(p.y)});
-    // Remove the last element of the trail if it exceeds the trail length
     if (p.trail.size() > TRAIL_LENGTH) {
         p.trail.pop_back();
     }
+
+    return true;  // Particle survives
 }
 
-/**
- * drawParticle function
- * Is in charge of drawing the particle on the screen
- * @param renderer SDL_Renderer to draw the particle on
- * @param p Particle to draw
- */
 void drawParticle(SDL_Renderer* renderer, const Particle& p) {
-    // Draw the particle
     for (size_t i = 0; i < p.trail.size(); ++i) {
-        // Calculate the alpha value based on the trail length
         int alpha = 255 * (1 - static_cast<float>(i) / TRAIL_LENGTH);
-        // Set the draw color and draw the point
         SDL_SetRenderDrawColor(renderer, p.color.r, p.color.g, p.color.b, alpha);
-        // Draw the point
         SDL_RenderDrawPoint(renderer, p.trail[i].x, p.trail[i].y);
     }
 }
 
-/**
- * Main function
- * @param argc Number of command line arguments
- * @param args Command line arguments
- * @return 0 on success, 1 on failure
- */
+void drawOrbit(SDL_Renderer* renderer, const OrbitPoint& orbit) {
+    SDL_SetRenderDrawColor(renderer, 100, 100, 100, 255);
+    for (int i = 0; i < 360; i++) {
+        float angle = i * M_PI / 180;
+        int x = static_cast<int>(orbit.x + orbit.radius * cos(angle));
+        int y = static_cast<int>(orbit.y + orbit.radius * sin(angle));
+        SDL_RenderDrawPoint(renderer, x, y);
+    }
+}
+
 int main(int argc, char* args[]) {
-    // Initialize SDL window and renderer
-    SDL_Window* window = nullptr;
-    SDL_Renderer* renderer = nullptr;
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Window* window = SDL_CreateWindow("Particle Absorbing Screensaver - FPS: 0", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    // Catch error when SDL fails to initialize
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-        return 1;
+    std::vector<OrbitPoint> orbits;
+    std::vector<Particle> particles;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> pos_dis(0, 1);
+    std::uniform_real_distribution<> vel_dis(-ROAM_SPEED, ROAM_SPEED);
+    std::uniform_real_distribution<> radius_dis(50, 150);
+
+    // Create orbit points
+    for (int i = 0; i < NUM_ORBITS; ++i) {
+        float x = SCREEN_WIDTH * (i + 1) / (NUM_ORBITS + 1);
+        float y = SCREEN_HEIGHT / 2 + (i % 2 == 0 ? -1 : 1) * SCREEN_HEIGHT / 4;
+        float radius = radius_dis(gen);
+        orbits.push_back({x, y, radius, 0});
     }
 
-    // Create SDL window with the specified title, position, width, height, and flags
-    window = SDL_CreateWindow("Particle Screensaver - 0", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    // Catch error when SDL fails to create a window
-    if (window == nullptr) {
-        SDL_Log("Window could not be created! SDL_Error: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    // Create SDL renderer with the specified window, index, and flags
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    // Catch error when SDL fails to create a renderer
-    if (renderer == nullptr) {
-        SDL_Log("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    // Initialize frame count, start time, and current time
-    int frameCount = 0;
-    // Start time of the program
     double startTime = SDL_GetTicks();
-    // Current time of the program
+
+    // Create initial particles
+    for (int i = 0; i < INITIAL_PARTICLES; ++i) {
+        float x = pos_dis(gen) * SCREEN_WIDTH;
+        float y = pos_dis(gen) * SCREEN_HEIGHT;
+        float dx = vel_dis(gen);
+        float dy = vel_dis(gen);
+        particles.emplace_back(x, y, dx, dy, getRandomColor());
+    }
+
+    double endTime = SDL_GetTicks();
+    double generationTime = endTime - startTime;
+    std::cout << "Time to generate particles: " << generationTime << " ms" << std::endl;
+
+    int frameCount = 0;
     double currentTime = startTime;
 
-    // Vector to store particles
-    std::vector<Particle> particles;
-    // Generate random particle
-    std::random_device rd;
-    // Seed the random number generator
-    std::mt19937 gen(rd());
-    // Generate random number between -2 and 2
-    std::uniform_real_distribution<> dis(-2.0, 2.0);
-
-    // Create particles to fill the screen
-    for (int i = 0; i < NUM_PARTICLES; ++i) {
-        particles.emplace_back(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, dis(gen), dis(gen), getRandomColor());
-    }
-    // Declares SDL event variable to handle events
-    SDL_Event e;
-    // Controls the main loop of the program
     bool quit = false;
-    // Main loop, executed as long as the program is not closed
+    SDL_Event e;
+
     while (!quit) {
-        // Handle pending events
         while (SDL_PollEvent(&e) != 0) {
-            // Checks if the event is a quit event
             if (e.type == SDL_QUIT) {
-                // If so, sets the quit flag to true
                 quit = true;
             }
-        }    
+        }
 
-        // Set the color of the background
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        // Clear the screen
         SDL_RenderClear(renderer);
 
-        for (auto& particle : particles) {
-            // Update particle position
-            updateParticle(particle);
-            // Draw the particle
+        // Update and draw orbits
+        for (const auto& orbit : orbits) {
+            drawOrbit(renderer, orbit);
+        }
+
+        // Update and draw particles
+        particles.erase(std::remove_if(particles.begin(), particles.end(),
+            [&](Particle& p) { return !updateParticle(p, orbits, gen); }),
+            particles.end());
+
+        for (const auto& particle : particles) {
             drawParticle(renderer, particle);
         }
 
-        // Update the screen
+        // Add new particles if needed
+        while (particles.size() < INITIAL_PARTICLES) {
+            float x = pos_dis(gen) * SCREEN_WIDTH;
+            float y = pos_dis(gen) * SCREEN_HEIGHT;
+            float dx = vel_dis(gen);
+            float dy = vel_dis(gen);
+            particles.emplace_back(x, y, dx, dy, getRandomColor());
+        }
+
         SDL_RenderPresent(renderer);
-        // Delay to achieve 60 FPS
         SDL_Delay(16);  // Approx. 60 FPS
 
-        // Calculate the frame count
         frameCount++;
 
         // Calculate and display FPS
-        if (SDL_GetTicks() - currentTime >= 1000) {
-            // Calculate the FPS
-            currentTime = SDL_GetTicks();
-            // Set the window title to display the FPS
-            std::string title = "Hello World - FPS: " + std::to_string(frameCount);
-            SDL_SetWindowTitle(window, title.c_str());
-            // Reset the frame count
+        double now = SDL_GetTicks();
+        if (now - currentTime >= 1000) {
+            double fps = frameCount / ((now - currentTime) / 1000.0);
+            std::string title = "Particle Absorbing Screensaver - FPS: " + std::to_string(frameCount);
+            std::cout << "FPS: " << fps << std::endl;
+            currentTime = now;
             frameCount = 0;
         }
     }
 
-    // Destroy the renderer and window
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    // Quit SDL
     SDL_Quit();
 
-    // Return 0 on success
     return 0;
 }
