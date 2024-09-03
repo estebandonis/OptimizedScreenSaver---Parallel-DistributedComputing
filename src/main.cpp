@@ -2,6 +2,8 @@
 #include <vector>
 #include <cmath>
 #include <random>
+#include <iomanip> // Include iomanip header
+#include <sstream>
 #include <algorithm>
 #include <iostream>
 
@@ -211,7 +213,11 @@ int main(int argc, char* args[]) {
         double now = SDL_GetTicks();
         if (now - currentTime >= 1000) {
             double fps = frameCount / ((now - currentTime) / 1000.0);
-            std::string title = "Particle Absorbing Screensaver - FPS: " + std::to_string(frameCount);
+            std::ostringstream stream;
+            stream << std::fixed << std::setprecision(2) << fps; // Set precision to 2
+            std::string fps_string = stream.str();
+            std::string title = "Particle Absorbing Screensaver - FPS: " + fps_string;
+            SDL_SetWindowTitle(window, title.c_str()); // Update window title
             std::cout << "FPS: " << fps << std::endl;
             currentTime = now;
             frameCount = 0;
