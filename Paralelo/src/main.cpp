@@ -15,18 +15,19 @@
 #include <algorithm> // Include algorithm header
 #include <iostream> // Include iostream header
 #include <omp.h>  // Include OpenMP header
+using namespace std;
 
-const int SCREEN_WIDTH = 800; //  ANCHO DE LA PANTALLA
-const int SCREEN_HEIGHT = 600;  // ALTO DE LA PANTALLA 
-const int INITIAL_PARTICLES = 5000; // CANTIDAD DE PARTICULAS INICIALES
-const int TRAIL_LENGTH = 20; // LONGITUD DE LA ESTELA
-const int NUM_ORBITS = 5; // CANTIDAD DE ORBITAS
-const float ORBIT_SPEED = 0.02f; // VELOCIDAD DE LA ORBITA
-const float ROAM_SPEED = 1.0f; // VELOCIDAD DE MOVIMIENTO
-const float CAPTURE_RADIUS = 100.0f; // RADIO DE CAPTURA
-const float ABSORPTION_RADIUS = 5.0f; // RADIO DE ABSORCION
-const float ESCAPE_PROBABILITY = 0.005f; // PROBABILIDAD DE ESCAPE
-const float CAPTURE_PROBABILITY = 0.05f; // PROBABILIDAD DE CAPTURA
+int SCREEN_WIDTH = 800; //  ANCHO DE LA PANTALLA
+int SCREEN_HEIGHT = 600;  // ALTO DE LA PANTALLA 
+int INITIAL_PARTICLES = 5000; // CANTIDAD DE PARTICULAS INICIALES
+int TRAIL_LENGTH = 20; // LONGITUD DE LA ESTELA
+int NUM_ORBITS = 5; // CANTIDAD DE ORBITAS
+float ORBIT_SPEED = 0.02f; // VELOCIDAD DE LA ORBITA
+float ROAM_SPEED = 1.0f; // VELOCIDAD DE MOVIMIENTO
+float CAPTURE_RADIUS = 100.0f; // RADIO DE CAPTURA
+float ABSORPTION_RADIUS = 5.0f; // RADIO DE ABSORCION
+float ESCAPE_PROBABILITY = 0.005f; // PROBABILIDAD DE ESCAPE
+float CAPTURE_PROBABILITY = 0.05f; // PROBABILIDAD DE CAPTURA
 // Estructura para almacenar un punto de orbita
 struct OrbitPoint {
     float x, y; // COORDENADAS
@@ -139,6 +140,262 @@ void drawOrbit(SDL_Renderer* renderer, const OrbitPoint& orbit) {
 }
 // FUNCION PRINCIPAL
 int main(int argc, char* args[]) {
+
+    string message;
+    bool valid = false;
+
+    while(!valid){
+        cout << "Ingrese el ancho de la pantalla: (default: 800)\n";
+        getline(cin, message);
+
+        try
+        {
+            SCREEN_WIDTH = stoi(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+    
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese el largo de la pantalla: (default: 600)\n";
+        getline(cin, message);
+
+        try
+        {
+            SCREEN_HEIGHT = stoi(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese la cantidad de particulas iniciales: (default: 5000)\n";
+        getline(cin, message);
+
+        try
+        {
+            INITIAL_PARTICLES = stoi(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese la cantidad de orbitas: (default: 5)\n";
+        getline(cin, message);
+
+        try
+        {
+            NUM_ORBITS = stoi(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese la longitud de la cola: (default: 20)\n";
+        getline(cin, message);
+
+        try
+        {
+            TRAIL_LENGTH = stoi(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+    
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese la velocidad de la orbita: (default: 0.02)\n";
+        getline(cin, message);
+
+        try
+        {
+            ORBIT_SPEED = stof(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese la velocidad en la que van los destellos: (default: 1.0)\n";
+        getline(cin, message);
+
+        try
+        {
+            ROAM_SPEED = stof(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese el radio de atrapamiento: (default: 100.0)\n";
+        getline(cin, message);
+
+        try
+        {
+            CAPTURE_RADIUS = stof(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese el radio de absorcion: (default: 5.0)\n";
+        getline(cin, message);
+
+        try
+        {
+            ABSORPTION_RADIUS = stof(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese el posibilidad de escape: (default: 0.005)\n";
+        getline(cin, message);
+
+        try
+        {
+            ESCAPE_PROBABILITY = stof(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+    valid = false;
+
+    while(!valid){
+        cout << "Ingrese el posibilidad de absorcion: (default: 0.05)\n";
+        getline(cin, message);
+
+        try
+        {
+            CAPTURE_PROBABILITY = stof(message);
+
+            valid = true;
+        }
+        catch(const std::invalid_argument& e)
+        {
+            cerr << "Input invalido, ingrese un numero \n";
+        }
+        catch(const std::out_of_range& e)
+        {
+            cerr << "Numero muy grande, ingrese un valor no tan grande \n";
+        }
+        
+    }
+
+
     SDL_Init(SDL_INIT_VIDEO); // INICIAR SDL
     SDL_Window* window = SDL_CreateWindow("Particle Absorbing Screensaver - FPS: 0", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN); // CREAR VENTANA
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED); // CREAR RENDERIZADOR
@@ -210,10 +467,15 @@ int main(int argc, char* args[]) {
                 }
             }
         }
-        // DIBUJAR PARTICULAS 
-        for (const auto& particle : particles) {
-            drawParticle(renderer, particle); // DIBUJAR PARTICULA
+
+        #pragma omp parallel
+        {
+            #pragma omp for // INICIAR REGION PARALELA PARA DIBUJAR PARTICULAS
+            for (const auto& particle : particles) {
+                drawParticle(renderer, particle); // DIBUJAR PARTICULA
+            }
         }
+        
 
         // AGREGAR PARTICULAS EN PARALELO
         #pragma omp parallel
